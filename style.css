@@ -85,6 +85,7 @@ h1 {
   place-items: center;
   z-index: 1000;
 }
+.modal-overlay[hidden] { display: none !important; }
 .modal {
   width: min(92vw, 420px);
   background: #202020;
