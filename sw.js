@@ -25,7 +25,7 @@ self.addEventListener('install', (event) => {
           if (resp && resp.ok) {
             await cache.put(url, resp.clone());
           }
-        } catch (_) {
+        } catch {
           // ignore missing optional assets
         }
       }));

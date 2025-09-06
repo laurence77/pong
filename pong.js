@@ -22,7 +22,6 @@ const PADDLE_HEIGHT = 80;
 const BALL_SIZE = 14;
 const PLAYER_X = 30;
 const AI_X = canvas.width - PLAYER_X - PADDLE_WIDTH;
-const PADDLE_SPEED = 6;
 const DIFFICULTY = {
   easy:   { ai: 3, ball: 5 },
   normal: { ai: 4, ball: 6 },
@@ -80,7 +79,7 @@ function ensureAudio() {
           const arr = await r.arrayBuffer();
           spriteBuffer = await audioCtx.decodeAudioData(arr);
           return;
-        } catch (_) { /* try next */ }
+        } catch { /* try next */ }
       }
       // Build a tiny procedural sprite as a fallback
       try { spriteBuffer = buildProceduralSprite(audioCtx); } catch {}
