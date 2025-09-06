@@ -14,6 +14,7 @@ const settingsClose = document.getElementById('settingsClose');
 const settingsReset = document.getElementById('settingsReset');
 const hudPlayerPips = document.getElementById('hudPlayerPips');
 const hudAiPips = document.getElementById('hudAiPips');
+const hudText = document.getElementById('hudText');
 
 // Game settings
 const PADDLE_WIDTH = 12;
@@ -76,9 +77,53 @@ function ensureAudio() {
     }).then(buf => audioCtx.decodeAudioData(buf)).then(decoded => {
       spriteBuffer = decoded;
     }).catch(() => {
-      // Keep using synth fallback
+      // Build a tiny procedural sprite as a fallback
+      try { spriteBuffer = buildProceduralSprite(audioCtx); } catch {}
     });
   }
+}
+
+function buildProceduralSprite(ctx) {
+  const sr = ctx.sampleRate || 44100;
+  const totalSec = 0.7; // covers all mapped segments
+  const buf = ctx.createBuffer(1, Math.ceil(totalSec * sr), sr);
+  const ch = buf.getChannelData(0);
+  function fillTone(startSec, durSec, freq) {
+    const start = Math.floor(startSec * sr);
+    const len = Math.floor(durSec * sr);
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      const env = Math.min(1, i / (0.01 * sr)) * Math.max(0, 1 - i / len);
+      ch[start + i] += Math.sin(2 * Math.PI * freq * t) * 0.35 * env;
+    }
+  }
+  // paddle: 0.00-0.12 (800 Hz)
+  fillTone(0.00, 0.12, 800);
+  // wall: 0.14-0.24 (220 Hz)
+  fillTone(0.14, 0.10, 220);
+  // scoreUp: 0.26-0.46 (sweep 420->760)
+  (function sweep(start, dur, f0, f1) {
+    const s = Math.floor(start * sr);
+    const n = Math.floor(dur * sr);
+    for (let i = 0; i < n; i++) {
+      const t = i / sr;
+      const f = f0 + (f1 - f0) * (i / n);
+      const env = Math.min(1, i / (0.01 * sr)) * Math.max(0, 1 - i / n);
+      ch[s + i] += Math.sin(2 * Math.PI * f * t) * 0.3 * env;
+    }
+  })(0.26, 0.20, 420, 760);
+  // scoreDown: 0.48-0.68 (sweep 420->160)
+  (function sweep(start, dur, f0, f1) {
+    const s = Math.floor(start * sr);
+    const n = Math.floor(dur * sr);
+    for (let i = 0; i < n; i++) {
+      const t = i / sr;
+      const f = f0 + (f1 - f0) * (i / n);
+      const env = Math.min(1, i / (0.01 * sr)) * Math.max(0, 1 - i / n);
+      ch[s + i] += Math.sin(2 * Math.PI * f * t) * 0.3 * env;
+    }
+  })(0.48, 0.20, 420, 160);
+  return buf;
 }
 function sfx(type) {
   if (muted || !audioCtx) return;
@@ -271,6 +316,7 @@ function update() {
         } else {
           resetBall(); isRunning = false;
         }
+        saveMatch(); renderHud();
     } else if (ballX > canvas.width) {
         playerScore += 1;
         sfx('scoreUp');
@@ -284,6 +330,7 @@ function update() {
         } else {
           resetBall(); isRunning = false;
         }
+        saveMatch(); renderHud();
     }
 
     // AI paddle movement: Track the ball, but limited speed
@@ -374,7 +421,7 @@ if (settingsBtn && overlayEl && settingsSave && settingsClose) {
       if (modalMute) modalMute.checked = muted;
       if (modalBestOf) modalBestOf.value = String(bestOf);
       if (modalWinScore) modalWinScore.value = String(WIN_SCORE);
-      gamesPlayer = 0; gamesAI = 0; resetGame(); saveSettings(); renderHud();
+      gamesPlayer = 0; gamesAI = 0; resetGame(); saveSettings(); saveMatch(); renderHud();
     });
   }
   overlayEl.addEventListener('click', (e) => {
@@ -447,8 +494,34 @@ function renderHud() {
     const p = document.createElement('span'); p.className = 'pip' + (i < gamesAI ? ' on' : '');
     hudAiPips.appendChild(p);
   }
+  if (hudText) {
+    hudText.textContent = `Best of ${bestOf} (first to ${gamesToWin} games) • Win score: ${WIN_SCORE}`;
+  }
 }
 renderHud();
+
+// Persist and restore match progress
+function saveMatch() {
+  const match = { playerScore, aiScore, gamesPlayer, gamesAI, bestOf, winScore: WIN_SCORE };
+  try { localStorage.setItem('pongMatch', JSON.stringify(match)); } catch {}
+}
+function loadMatch() {
+  try {
+    const raw = localStorage.getItem('pongMatch');
+    if (!raw) return;
+    const m = JSON.parse(raw);
+    if (Number.isFinite(m.playerScore)) playerScore = m.playerScore;
+    if (Number.isFinite(m.aiScore)) aiScore = m.aiScore;
+    if (Number.isFinite(m.gamesPlayer)) gamesPlayer = m.gamesPlayer;
+    if (Number.isFinite(m.gamesAI)) gamesAI = m.gamesAI;
+    if (m.bestOf === 3 || m.bestOf === 5) { bestOf = m.bestOf; gamesToWin = Math.ceil(bestOf/2); }
+    if (Number.isFinite(m.winScore)) WIN_SCORE = m.winScore;
+    if (modalBestOf) modalBestOf.value = String(bestOf);
+    if (modalWinScore) modalWinScore.value = String(WIN_SCORE);
+    renderHud();
+  } catch {}
+}
+loadMatch();
 
 // Keyboard: P to pause
 window.addEventListener('keydown', (e) => {

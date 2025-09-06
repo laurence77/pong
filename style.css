@@ -70,6 +70,12 @@ h1 {
 }
 .pip.on { background: #3e59ff; border-color: #5c72ff; box-shadow: 0 0 8px #3e59ff66; }
 
+.hud-sub {
+  color: #bbb;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
 /* Modal */
 .modal-overlay {
   position: fixed;
