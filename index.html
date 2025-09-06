@@ -25,8 +25,38 @@
       <label for="muteToggle" class="mute-label">
         <input type="checkbox" id="muteToggle" /> Mute
       </label>
+      <button id="pauseBtn" class="btn" type="button" aria-pressed="false">Pause</button>
+      <button id="settingsBtn" class="btn" type="button">Settings</button>
     </div>
     <canvas id="pongCanvas" width="800" height="500"></canvas>
+
+    <div id="settingsOverlay" class="modal-overlay" hidden>
+      <div class="modal" role="dialog" aria-labelledby="settingsTitle" aria-modal="true">
+        <h2 id="settingsTitle">Settings</h2>
+        <div class="field">
+          <label for="modalDifficulty">Difficulty</label>
+          <select id="modalDifficulty">
+            <option value="easy">Easy</option>
+            <option value="normal">Normal</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+        <div class="field">
+          <label><input type="checkbox" id="modalMute" /> Mute</label>
+        </div>
+        <div class="field">
+          <label for="modalBestOf">Match Length</label>
+          <select id="modalBestOf">
+            <option value="3">Best of 3</option>
+            <option value="5">Best of 5</option>
+          </select>
+        </div>
+        <div class="actions">
+          <button id="settingsSave" class="btn primary" type="button">Save</button>
+          <button id="settingsClose" class="btn" type="button">Close</button>
+        </div>
+      </div>
+    </div>
     <script src="pong.js"></script>
     <script>
       if ('serviceWorker' in navigator) {

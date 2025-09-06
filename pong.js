@@ -2,6 +2,14 @@ const canvas = document.getElementById('pongCanvas');
 const ctx = canvas.getContext('2d');
 const difficultyEl = document.getElementById('difficulty');
 const muteEl = document.getElementById('muteToggle');
+const pauseBtn = document.getElementById('pauseBtn');
+const settingsBtn = document.getElementById('settingsBtn');
+const overlayEl = document.getElementById('settingsOverlay');
+const modalDifficulty = document.getElementById('modalDifficulty');
+const modalMute = document.getElementById('modalMute');
+const modalBestOf = document.getElementById('modalBestOf');
+const settingsSave = document.getElementById('settingsSave');
+const settingsClose = document.getElementById('settingsClose');
 
 // Game settings
 const PADDLE_WIDTH = 12;
@@ -18,7 +26,9 @@ const DIFFICULTY = {
 let difficulty = 'normal';
 let aiSpeed = DIFFICULTY[difficulty].ai;
 let serveBaseSpeed = DIFFICULTY[difficulty].ball;
-const WIN_SCORE = 7;
+let WIN_SCORE = 7;
+let bestOf = 3;
+let gamesToWin = Math.ceil(bestOf / 2);
 
 let playerY = (canvas.height - PADDLE_HEIGHT) / 2;
 let aiY = (canvas.height - PADDLE_HEIGHT) / 2;
@@ -31,6 +41,11 @@ let aiScore = 0;
 let isRunning = false; // tap/click to start
 let gameOver = false;
 let winner = null; // 'player' | 'ai'
+let paused = false;
+
+let gamesPlayer = 0;
+let gamesAI = 0;
+let betweenGames = false; // after a game ends but match not over
 
 // Audio
 let audioCtx = null;
@@ -40,17 +55,46 @@ function ensureAudio() {
     try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch {}
   }
 }
-function playBeep(freq = 440, time = 0.05, vol = 0.05) {
+function sfx(type) {
   if (muted || !audioCtx) return;
+  const now = audioCtx.currentTime;
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
-  osc.type = 'square';
-  osc.frequency.value = freq;
-  gain.gain.value = vol;
   osc.connect(gain).connect(audioCtx.destination);
-  const now = audioCtx.currentTime;
-  osc.start(now);
-  osc.stop(now + time);
+  gain.gain.setValueAtTime(0.0001, now);
+
+  if (type === 'paddle') {
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(620, now);
+    osc.frequency.linearRampToValueAtTime(900, now + 0.08);
+    gain.gain.linearRampToValueAtTime(0.07, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
+    osc.start(now);
+    osc.stop(now + 0.1);
+  } else if (type === 'wall') {
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(220, now);
+    gain.gain.linearRampToValueAtTime(0.05, now + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
+    osc.start(now);
+    osc.stop(now + 0.06);
+  } else if (type === 'scoreUp') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(420, now);
+    osc.frequency.linearRampToValueAtTime(760, now + 0.15);
+    gain.gain.linearRampToValueAtTime(0.08, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+    osc.start(now);
+    osc.stop(now + 0.18);
+  } else if (type === 'scoreDown') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(420, now);
+    osc.frequency.linearRampToValueAtTime(160, now + 0.15);
+    gain.gain.linearRampToValueAtTime(0.08, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+    osc.start(now);
+    osc.stop(now + 0.18);
+  }
 }
 
 function drawRect(x, y, w, h, color) {
@@ -111,6 +155,11 @@ function draw() {
     ctx.fillText(String(playerScore), canvas.width * 0.25, 40);
     ctx.fillText(String(aiScore), canvas.width * 0.75, 40);
 
+    // Games tally
+    ctx.font = 'bold 14px Arial, Helvetica, sans-serif';
+    ctx.fillText(`Games ${gamesPlayer}`, canvas.width * 0.25, 64);
+    ctx.fillText(`${gamesAI} Games`, canvas.width * 0.75, 64);
+
     if (gameOver) {
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -120,6 +169,12 @@ function draw() {
         ctx.font = '16px Arial, Helvetica, sans-serif';
         ctx.fillStyle = '#ccc';
         ctx.fillText('Tap or click to play again', canvas.width / 2, canvas.height / 2 + 18);
+    } else if (betweenGames) {
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ddd';
+        ctx.font = '600 20px Arial, Helvetica, sans-serif';
+        ctx.fillText('Next game — tap to serve', canvas.width / 2, canvas.height / 2 + 8);
     } else if (!isRunning) {
         // Overlay for tap to play
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
@@ -134,7 +189,7 @@ function draw() {
 }
 
 function update() {
-    if (!isRunning) return;
+    if (paused || !isRunning) return;
     // Move ball
     ballX += ballSpeedX;
     ballY += ballSpeedY;
@@ -142,7 +197,7 @@ function update() {
     // Collision: Top or bottom wall
     if (ballY <= 0 || ballY + BALL_SIZE >= canvas.height) {
         ballSpeedY = -ballSpeedY;
-        playBeep(220, 0.04, 0.04);
+        sfx('wall');
     }
 
     // Collision: Player paddle
@@ -156,7 +211,7 @@ function update() {
         let hitPos = (ballY + BALL_SIZE / 2) - (playerY + PADDLE_HEIGHT / 2);
         ballSpeedY += hitPos * 0.15;
         ballX = PLAYER_X + PADDLE_WIDTH; // Prevent sticking
-        playBeep(880, 0.05, 0.06);
+        sfx('paddle');
     }
 
     // Collision: AI paddle
@@ -169,23 +224,33 @@ function update() {
         let hitPos = (ballY + BALL_SIZE / 2) - (aiY + PADDLE_HEIGHT / 2);
         ballSpeedY += hitPos * 0.15;
         ballX = AI_X - BALL_SIZE; // Prevent sticking
-        playBeep(760, 0.05, 0.05);
+        sfx('paddle');
     }
 
     // Score: Ball out of bounds
     if (ballX < 0) {
         aiScore += 1;
-        playBeep(160, 0.1, 0.08);
+        sfx('scoreDown');
         if (aiScore >= WIN_SCORE) {
-          winner = 'ai'; gameOver = true; isRunning = false;
+          gamesAI += 1;
+          if (gamesAI >= gamesToWin) {
+            winner = 'ai'; gameOver = true; isRunning = false; betweenGames = false;
+          } else {
+            betweenGames = true; isRunning = false; resetBall();
+          }
         } else {
           resetBall(); isRunning = false;
         }
     } else if (ballX > canvas.width) {
         playerScore += 1;
-        playBeep(480, 0.1, 0.08);
+        sfx('scoreUp');
         if (playerScore >= WIN_SCORE) {
-          winner = 'player'; gameOver = true; isRunning = false;
+          gamesPlayer += 1;
+          if (gamesPlayer >= gamesToWin) {
+            winner = 'player'; gameOver = true; isRunning = false; betweenGames = false;
+          } else {
+            betweenGames = true; isRunning = false; resetBall();
+          }
         } else {
           resetBall(); isRunning = false;
         }
@@ -225,9 +290,11 @@ canvas.addEventListener('pointerdown', (evt) => {
     ensureAudio();
     if (gameOver) {
       resetGame();
-      isRunning = true;
+      gamesPlayer = 0; gamesAI = 0; betweenGames = false;
+      isRunning = true; paused = false;
     } else if (!isRunning) {
-      isRunning = true;
+      if (betweenGames) { betweenGames = false; }
+      isRunning = true; paused = false;
     }
 });
 
@@ -237,14 +304,87 @@ if (difficultyEl) {
     difficulty = difficultyEl.value;
     aiSpeed = DIFFICULTY[difficulty].ai;
     serveBaseSpeed = DIFFICULTY[difficulty].ball;
+    saveSettings();
     resetGame();
   });
 }
 if (muteEl) {
   muteEl.addEventListener('change', () => {
     muted = muteEl.checked;
+    saveSettings();
   });
 }
+
+// Pause button
+if (pauseBtn) {
+  pauseBtn.addEventListener('click', () => {
+    ensureAudio();
+    paused = !paused;
+    pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+    pauseBtn.setAttribute('aria-pressed', paused ? 'true' : 'false');
+  });
+}
+
+// Settings modal handlers
+if (settingsBtn && overlayEl && settingsSave && settingsClose) {
+  settingsBtn.addEventListener('click', () => {
+    overlayEl.hidden = false;
+  });
+  settingsClose.addEventListener('click', () => {
+    overlayEl.hidden = true;
+  });
+  overlayEl.addEventListener('click', (e) => {
+    if (e.target === overlayEl) overlayEl.hidden = true;
+  });
+  settingsSave.addEventListener('click', () => {
+    // Read from modal
+    const d = modalDifficulty.value;
+    const m = modalMute.checked;
+    const b = parseInt(modalBestOf.value, 10) || 3;
+    difficulty = d;
+    muted = m;
+    bestOf = b;
+    gamesToWin = Math.ceil(bestOf / 2);
+    aiSpeed = DIFFICULTY[difficulty].ai;
+    serveBaseSpeed = DIFFICULTY[difficulty].ball;
+    // Sync top controls
+    if (difficultyEl) difficultyEl.value = difficulty;
+    if (muteEl) muteEl.checked = muted;
+    saveSettings();
+    // Reset match
+    gamesPlayer = 0; gamesAI = 0;
+    resetGame();
+    overlayEl.hidden = true;
+  });
+}
+
+// Persistence
+function saveSettings() {
+  const settings = { difficulty, muted, bestOf, winScore: WIN_SCORE };
+  try { localStorage.setItem('pongSettings', JSON.stringify(settings)); } catch {}
+}
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem('pongSettings');
+    if (!raw) return;
+    const conf = JSON.parse(raw);
+    if (conf.difficulty && DIFFICULTY[conf.difficulty]) difficulty = conf.difficulty;
+    if (typeof conf.muted === 'boolean') muted = conf.muted;
+    if (conf.bestOf === 3 || conf.bestOf === 5) bestOf = conf.bestOf;
+    if (conf.winScore && Number.isFinite(conf.winScore)) WIN_SCORE = conf.winScore;
+  } catch {}
+}
+
+// Initialize from saved settings
+loadSettings();
+gamesToWin = Math.ceil(bestOf / 2);
+aiSpeed = DIFFICULTY[difficulty].ai;
+serveBaseSpeed = DIFFICULTY[difficulty].ball;
+if (difficultyEl) difficultyEl.value = difficulty;
+if (muteEl) muteEl.checked = muted;
+if (modalDifficulty) modalDifficulty.value = difficulty;
+if (modalMute) modalMute.checked = muted;
+if (modalBestOf) modalBestOf.value = String(bestOf);
 
 // Start the game
 gameLoop();

@@ -29,6 +29,18 @@ h1 {
 }
 .controls .mute-label { display: inline-flex; align-items: center; gap: 6px; }
 
+.btn {
+  background: #2d2d2d;
+  border: 1px solid #444;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn:hover { background: #333; }
+.btn.primary { background: #3e59ff; border-color: #3e59ff; }
+.btn.primary:hover { filter: brightness(1.05); }
+
 #pongCanvas {
     display: block;
     margin: 0 auto;
@@ -39,6 +51,28 @@ h1 {
     max-width: 95vw; /* responsive scale */
     height: auto; /* keep aspect ratio */
 }
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: grid;
+  place-items: center;
+  z-index: 1000;
+}
+.modal {
+  width: min(92vw, 420px);
+  background: #202020;
+  border: 1px solid #2e2e2e;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: left;
+  color: #eee;
+}
+.modal h2 { margin: 0 0 12px; font-size: 18px; }
+.modal .field { display: grid; gap: 6px; margin: 10px 0; }
+.modal .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 12px; }
 
 @media (max-width: 480px) {
   h1 { font-size: 18px; margin: 12px 0 8px; }
