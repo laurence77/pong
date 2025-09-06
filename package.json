@@ -4,10 +4,13 @@
   "version": "1.0.0",
   "license": "UNLICENSED",
   "scripts": {
-    "gen:icons": "node scripts/gen-icons.js"
+    "gen:icons": "node scripts/gen-icons.js",
+    "lint": "eslint . --ext .js --max-warnings=0"
   },
   "dependencies": {
     "sharp": "^0.33.4"
+  },
+  "devDependencies": {
+    "eslint": "^9.9.0"
   }
 }
-

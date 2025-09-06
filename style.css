@@ -12,6 +12,23 @@ h1 {
     letter-spacing: 1px;
 }
 
+.controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #202020;
+  border: 1px solid #2e2e2e;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.controls label { font-size: 14px; color: #ddd; }
+.controls select { 
+  background: #181818; color: #fff; border: 1px solid #444; 
+  border-radius: 6px; padding: 4px 6px;
+}
+.controls .mute-label { display: inline-flex; align-items: center; gap: 6px; }
+
 #pongCanvas {
     display: block;
     margin: 0 auto;

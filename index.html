@@ -13,8 +13,19 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Pong">
 </head>
-<body>
+  <body>
     <h1>Simple Pong Game</h1>
+    <div class="controls" role="group" aria-label="Game controls">
+      <label for="difficulty">Difficulty:</label>
+      <select id="difficulty" name="difficulty">
+        <option value="easy">Easy</option>
+        <option value="normal" selected>Normal</option>
+        <option value="hard">Hard</option>
+      </select>
+      <label for="muteToggle" class="mute-label">
+        <input type="checkbox" id="muteToggle" /> Mute
+      </label>
+    </div>
     <canvas id="pongCanvas" width="800" height="500"></canvas>
     <script src="pong.js"></script>
     <script>

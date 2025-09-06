@@ -28,6 +28,9 @@ jobs:
       - name: Install deps
         run: npm install --no-audit --no-fund
 
+      - name: Lint
+        run: npm run lint
+
       - name: Generate PNG icons from SVG
         run: npm run gen:icons
 
@@ -46,4 +49,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
