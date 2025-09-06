@@ -1,0 +1,29 @@
+body {
+    background: #181818;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
+h1 {
+    margin: 20px 0 10px 0;
+    letter-spacing: 1px;
+}
+
+#pongCanvas {
+    display: block;
+    margin: 0 auto;
+    background: #222;
+    border: 2px solid #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 20px #000a;
+    max-width: 95vw; /* responsive scale */
+    height: auto; /* keep aspect ratio */
+}
+
+@media (max-width: 480px) {
+  h1 { font-size: 18px; margin: 12px 0 8px; }
+  #pongCanvas { border-radius: 8px; border-width: 1.5px; }
+}
