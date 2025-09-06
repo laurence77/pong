@@ -16,6 +16,9 @@ let ballX = canvas.width / 2 - BALL_SIZE / 2;
 let ballY = canvas.height / 2 - BALL_SIZE / 2;
 let ballSpeedX = 6 * (Math.random() > 0.5 ? 1 : -1);
 let ballSpeedY = (Math.random() * 4 + 2) * (Math.random() > 0.5 ? 1 : -1);
+let playerScore = 0;
+let aiScore = 0;
+let isRunning = false; // tap/click to start
 
 function drawRect(x, y, w, h, color) {
     ctx.fillStyle = color;
@@ -60,9 +63,29 @@ function draw() {
 
     // Ball
     drawCircle(ballX + BALL_SIZE / 2, ballY + BALL_SIZE / 2, BALL_SIZE / 2, '#fff');
+
+    // Scoreboard
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 28px Arial, Helvetica, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(playerScore), canvas.width * 0.25, 40);
+    ctx.fillText(String(aiScore), canvas.width * 0.75, 40);
+
+    if (!isRunning) {
+        // Overlay for tap to play
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ddd';
+        ctx.font = '600 20px Arial, Helvetica, sans-serif';
+        ctx.fillText('Tap or click to play', canvas.width / 2, canvas.height / 2 + 8);
+        ctx.font = '14px Arial, Helvetica, sans-serif';
+        ctx.fillStyle = '#bbb';
+        ctx.fillText('Drag finger or move mouse to control', canvas.width / 2, canvas.height / 2 + 32);
+    }
 }
 
 function update() {
+    if (!isRunning) return;
     // Move ball
     ballX += ballSpeedX;
     ballY += ballSpeedY;
@@ -98,8 +121,14 @@ function update() {
     }
 
     // Score: Ball out of bounds
-    if (ballX < 0 || ballX > canvas.width) {
+    if (ballX < 0) {
+        aiScore += 1;
         resetBall();
+        isRunning = false;
+    } else if (ballX > canvas.width) {
+        playerScore += 1;
+        resetBall();
+        isRunning = false;
     }
 
     // AI paddle movement: Track the ball, but limited speed
@@ -120,12 +149,20 @@ function gameLoop() {
 }
 
 // Mouse movement controls player paddle
-canvas.addEventListener('mousemove', function (evt) {
-    let rect = canvas.getBoundingClientRect();
-    let mouseY = evt.clientY - rect.top;
-    playerY = mouseY - PADDLE_HEIGHT / 2;
-    // Keep paddle in bounds
+function handlePointer(y) {
+    playerY = y - PADDLE_HEIGHT / 2;
     playerY = Math.max(0, Math.min(canvas.height - PADDLE_HEIGHT, playerY));
+}
+
+canvas.addEventListener('pointermove', (evt) => {
+    const rect = canvas.getBoundingClientRect();
+    handlePointer(evt.clientY - rect.top);
+});
+
+canvas.addEventListener('pointerdown', (evt) => {
+    const rect = canvas.getBoundingClientRect();
+    handlePointer(evt.clientY - rect.top);
+    if (!isRunning) isRunning = true;
 });
 
 // Start the game

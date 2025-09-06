@@ -1,11 +1,13 @@
 const CACHE_NAME = 'pong-cache-v1';
+// Keep precache minimal to avoid install failures; icons cached on demand
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './pong.js',
   './manifest.webmanifest',
-  './icons/icon.svg'
+  './icons/icon.svg',
+  './icons/icon-maskable.svg'
 ];
 
 self.addEventListener('install', (event) => {
@@ -36,4 +38,3 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
-

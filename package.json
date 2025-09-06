@@ -1,0 +1,13 @@
+{
+  "name": "pong-site",
+  "private": true,
+  "version": "1.0.0",
+  "license": "UNLICENSED",
+  "scripts": {
+    "gen:icons": "node scripts/gen-icons.js"
+  },
+  "dependencies": {
+    "sharp": "^0.33.4"
+  }
+}
+
