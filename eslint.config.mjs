@@ -1,0 +1,25 @@
+import js from '@eslint/js';
+
+export default [
+  js.configs.recommended,
+  {
+    files: ["**/*.js"],
+    ignores: ["icons/**", "node_modules/**"],
+    languageOptions: {
+      ecmaVersion: 2021,
+      sourceType: "script",
+      globals: {
+        window: "readonly",
+        document: "readonly",
+        navigator: "readonly",
+        performance: "readonly"
+      }
+    },
+    rules: {
+      "no-unused-vars": ["warn", { args: "none" }],
+      "no-constant-condition": "off",
+      "no-console": "off"
+    }
+  }
+];
+

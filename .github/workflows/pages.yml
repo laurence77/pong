@@ -27,12 +27,23 @@ jobs:
 
       - name: Install deps
         run: npm install --no-audit --no-fund
+        working-directory: .
 
       - name: Lint
         run: npm run lint
+        working-directory: .
 
       - name: Generate PNG icons from SVG
         run: npm run gen:icons
+        working-directory: .
+
+      - name: Setup FFmpeg
+        uses: FedericoCarboni/setup-ffmpeg@v2
+
+      - name: Create MP3 from WAV sprite
+        run: |
+          test -f assets/sfx-sprite.wav && ffmpeg -y -hide_banner -loglevel error -i assets/sfx-sprite.wav -codec:a libmp3lame -b:a 96k assets/sfx-sprite.mp3 || true
+        working-directory: .
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
