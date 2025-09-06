@@ -26,7 +26,11 @@
         <input type="checkbox" id="muteToggle" /> Mute
       </label>
       <button id="pauseBtn" class="btn" type="button" aria-pressed="false">Pause</button>
-      <button id="settingsBtn" class="btn" type="button">Settings</button>
+      <button id="settingsBtn" class="btn" type="button" aria-haspopup="dialog"><span class="icon-gear" aria-hidden="true">⚙️</span> Settings</button>
+    </div>
+    <div class="hud" aria-label="Match status">
+      <div class="hud-side"><span>Player</span> <span id="hudPlayerPips" class="pips"></span></div>
+      <div class="hud-side"><span id="hudAiPips" class="pips"></span> <span>AI</span></div>
     </div>
     <canvas id="pongCanvas" width="800" height="500"></canvas>
 
@@ -45,6 +49,10 @@
           <label><input type="checkbox" id="modalMute" /> Mute</label>
         </div>
         <div class="field">
+          <label for="modalWinScore">Win Score (points to win a game)</label>
+          <input id="modalWinScore" type="number" min="3" max="21" step="1" value="7" />
+        </div>
+        <div class="field">
           <label for="modalBestOf">Match Length</label>
           <select id="modalBestOf">
             <option value="3">Best of 3</option>
@@ -52,6 +60,7 @@
           </select>
         </div>
         <div class="actions">
+          <button id="settingsReset" class="btn" type="button">Reset Defaults</button>
           <button id="settingsSave" class="btn primary" type="button">Save</button>
           <button id="settingsClose" class="btn" type="button">Close</button>
         </div>

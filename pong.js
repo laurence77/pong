@@ -8,8 +8,12 @@ const overlayEl = document.getElementById('settingsOverlay');
 const modalDifficulty = document.getElementById('modalDifficulty');
 const modalMute = document.getElementById('modalMute');
 const modalBestOf = document.getElementById('modalBestOf');
+const modalWinScore = document.getElementById('modalWinScore');
 const settingsSave = document.getElementById('settingsSave');
 const settingsClose = document.getElementById('settingsClose');
+const settingsReset = document.getElementById('settingsReset');
+const hudPlayerPips = document.getElementById('hudPlayerPips');
+const hudAiPips = document.getElementById('hudAiPips');
 
 // Game settings
 const PADDLE_WIDTH = 12;
@@ -50,50 +54,73 @@ let betweenGames = false; // after a game ends but match not over
 // Audio
 let audioCtx = null;
 let muted = false;
+let spriteBuffer = null;
+const AUDIO_SPRITE = {
+  url: 'assets/sfx-sprite.mp3',
+  map: {
+    paddle:   [0.00, 0.12],
+    wall:     [0.14, 0.10],
+    scoreUp:  [0.26, 0.20],
+    scoreDown:[0.48, 0.20]
+  }
+};
 function ensureAudio() {
   if (!audioCtx) {
     try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch {}
+  }
+  // Lazy-load audio sprite once
+  if (audioCtx && !spriteBuffer) {
+    fetch(AUDIO_SPRITE.url).then(r => {
+      if (!r.ok) throw new Error('no sprite');
+      return r.arrayBuffer();
+    }).then(buf => audioCtx.decodeAudioData(buf)).then(decoded => {
+      spriteBuffer = decoded;
+    }).catch(() => {
+      // Keep using synth fallback
+    });
   }
 }
 function sfx(type) {
   if (muted || !audioCtx) return;
   const now = audioCtx.currentTime;
+  if (spriteBuffer && AUDIO_SPRITE.map[type]) {
+    const [offset, dur] = AUDIO_SPRITE.map[type];
+    const src = audioCtx.createBufferSource();
+    const gain = audioCtx.createGain();
+    src.buffer = spriteBuffer;
+    src.connect(gain).connect(audioCtx.destination);
+    gain.gain.value = 0.7;
+    src.start(now, offset, dur);
+    return;
+  }
+  // Fallback synth
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
   osc.connect(gain).connect(audioCtx.destination);
   gain.gain.setValueAtTime(0.0001, now);
-
   if (type === 'paddle') {
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(620, now);
+    osc.type = 'square'; osc.frequency.setValueAtTime(620, now);
     osc.frequency.linearRampToValueAtTime(900, now + 0.08);
     gain.gain.linearRampToValueAtTime(0.07, now + 0.01);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
-    osc.start(now);
-    osc.stop(now + 0.1);
+    osc.start(now); osc.stop(now + 0.1);
   } else if (type === 'wall') {
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(220, now);
+    osc.type = 'triangle'; osc.frequency.setValueAtTime(220, now);
     gain.gain.linearRampToValueAtTime(0.05, now + 0.005);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
-    osc.start(now);
-    osc.stop(now + 0.06);
+    osc.start(now); osc.stop(now + 0.06);
   } else if (type === 'scoreUp') {
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(420, now);
+    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(420, now);
     osc.frequency.linearRampToValueAtTime(760, now + 0.15);
     gain.gain.linearRampToValueAtTime(0.08, now + 0.01);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
-    osc.start(now);
-    osc.stop(now + 0.18);
+    osc.start(now); osc.stop(now + 0.18);
   } else if (type === 'scoreDown') {
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(420, now);
+    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(420, now);
     osc.frequency.linearRampToValueAtTime(160, now + 0.15);
     gain.gain.linearRampToValueAtTime(0.08, now + 0.01);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
-    osc.start(now);
-    osc.stop(now + 0.18);
+    osc.start(now); osc.stop(now + 0.18);
   }
 }
 
@@ -159,6 +186,9 @@ function draw() {
     ctx.font = 'bold 14px Arial, Helvetica, sans-serif';
     ctx.fillText(`Games ${gamesPlayer}`, canvas.width * 0.25, 64);
     ctx.fillText(`${gamesAI} Games`, canvas.width * 0.75, 64);
+
+    // HUD pips outside canvas
+    renderHud();
 
     if (gameOver) {
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -333,6 +363,20 @@ if (settingsBtn && overlayEl && settingsSave && settingsClose) {
   settingsClose.addEventListener('click', () => {
     overlayEl.hidden = true;
   });
+  if (settingsReset) {
+    settingsReset.addEventListener('click', () => {
+      difficulty = 'normal'; muted = false; bestOf = 3; WIN_SCORE = 7;
+      gamesToWin = Math.ceil(bestOf / 2);
+      aiSpeed = DIFFICULTY[difficulty].ai; serveBaseSpeed = DIFFICULTY[difficulty].ball;
+      if (difficultyEl) difficultyEl.value = difficulty;
+      if (muteEl) muteEl.checked = muted;
+      if (modalDifficulty) modalDifficulty.value = difficulty;
+      if (modalMute) modalMute.checked = muted;
+      if (modalBestOf) modalBestOf.value = String(bestOf);
+      if (modalWinScore) modalWinScore.value = String(WIN_SCORE);
+      gamesPlayer = 0; gamesAI = 0; resetGame(); saveSettings(); renderHud();
+    });
+  }
   overlayEl.addEventListener('click', (e) => {
     if (e.target === overlayEl) overlayEl.hidden = true;
   });
@@ -341,15 +385,18 @@ if (settingsBtn && overlayEl && settingsSave && settingsClose) {
     const d = modalDifficulty.value;
     const m = modalMute.checked;
     const b = parseInt(modalBestOf.value, 10) || 3;
+    const ws = Math.max(3, Math.min(21, parseInt((modalWinScore && modalWinScore.value) || '7', 10) || 7));
     difficulty = d;
     muted = m;
     bestOf = b;
+    WIN_SCORE = ws;
     gamesToWin = Math.ceil(bestOf / 2);
     aiSpeed = DIFFICULTY[difficulty].ai;
     serveBaseSpeed = DIFFICULTY[difficulty].ball;
     // Sync top controls
     if (difficultyEl) difficultyEl.value = difficulty;
     if (muteEl) muteEl.checked = muted;
+    if (modalWinScore) modalWinScore.value = String(WIN_SCORE);
     saveSettings();
     // Reset match
     gamesPlayer = 0; gamesAI = 0;
@@ -385,6 +432,34 @@ if (muteEl) muteEl.checked = muted;
 if (modalDifficulty) modalDifficulty.value = difficulty;
 if (modalMute) modalMute.checked = muted;
 if (modalBestOf) modalBestOf.value = String(bestOf);
+if (modalWinScore) modalWinScore.value = String(WIN_SCORE);
+
+// HUD render
+function renderHud() {
+  if (!hudPlayerPips || !hudAiPips) return;
+  hudPlayerPips.innerHTML = '';
+  hudAiPips.innerHTML = '';
+  for (let i = 0; i < gamesToWin; i++) {
+    const p = document.createElement('span'); p.className = 'pip' + (i < gamesPlayer ? ' on' : '');
+    hudPlayerPips.appendChild(p);
+  }
+  for (let i = 0; i < gamesToWin; i++) {
+    const p = document.createElement('span'); p.className = 'pip' + (i < gamesAI ? ' on' : '');
+    hudAiPips.appendChild(p);
+  }
+}
+renderHud();
+
+// Keyboard: P to pause
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyP') {
+    paused = !paused;
+    if (pauseBtn) {
+      pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+      pauseBtn.setAttribute('aria-pressed', paused ? 'true' : 'false');
+    }
+  }
+});
 
 // Start the game
 gameLoop();

@@ -28,6 +28,7 @@ h1 {
   border-radius: 6px; padding: 4px 6px;
 }
 .controls .mute-label { display: inline-flex; align-items: center; gap: 6px; }
+.icon-gear { margin-right: 6px; }
 
 .btn {
   background: #2d2d2d;
@@ -51,6 +52,23 @@ h1 {
     max-width: 95vw; /* responsive scale */
     height: auto; /* keep aspect ratio */
 }
+
+.hud {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  justify-content: center;
+  margin: 8px 0 6px;
+  color: #ddd;
+  font-size: 14px;
+}
+.hud .hud-side { display: inline-flex; gap: 8px; align-items: center; }
+.pips { display: inline-flex; gap: 6px; }
+.pip {
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 1px solid #666; background: #2a2a2a;
+}
+.pip.on { background: #3e59ff; border-color: #5c72ff; box-shadow: 0 0 8px #3e59ff66; }
 
 /* Modal */
 .modal-overlay {
