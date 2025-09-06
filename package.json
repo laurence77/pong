@@ -5,12 +5,14 @@
   "license": "UNLICENSED",
   "scripts": {
     "gen:icons": "node scripts/gen-icons.js",
-    "lint": "eslint . --ext .js --max-warnings=0"
+    "lint": "eslint . --ext .js --max-warnings=0",
+    "make:sprite": "node scripts/make-sprite.js"
   },
   "dependencies": {
     "sharp": "^0.33.4"
   },
   "devDependencies": {
-    "eslint": "^9.9.0"
+    "eslint": "^9.9.0",
+    "lamejs": "^1.2.0"
   }
 }

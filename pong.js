@@ -57,7 +57,7 @@ let audioCtx = null;
 let muted = false;
 let spriteBuffer = null;
 const AUDIO_SPRITE = {
-  url: 'assets/sfx-sprite.mp3',
+  urls: ['assets/sfx-sprite.mp3', 'assets/sfx-sprite.wav'],
   map: {
     paddle:   [0.00, 0.12],
     wall:     [0.14, 0.10],
@@ -71,15 +71,20 @@ function ensureAudio() {
   }
   // Lazy-load audio sprite once
   if (audioCtx && !spriteBuffer) {
-    fetch(AUDIO_SPRITE.url).then(r => {
-      if (!r.ok) throw new Error('no sprite');
-      return r.arrayBuffer();
-    }).then(buf => audioCtx.decodeAudioData(buf)).then(decoded => {
-      spriteBuffer = decoded;
-    }).catch(() => {
+    // Try candidate URLs in order
+    (async () => {
+      for (const url of AUDIO_SPRITE.urls) {
+        try {
+          const r = await fetch(url, { cache: 'force-cache' });
+          if (!r.ok) continue;
+          const arr = await r.arrayBuffer();
+          spriteBuffer = await audioCtx.decodeAudioData(arr);
+          return;
+        } catch (_) { /* try next */ }
+      }
       // Build a tiny procedural sprite as a fallback
       try { spriteBuffer = buildProceduralSprite(audioCtx); } catch {}
-    });
+    })();
   }
 }
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pong-cache-v2';
+const CACHE_NAME = 'pong-cache-v3';
 // Keep precache minimal to avoid install failures; icons cached on demand
 const ASSETS = [
   './',
@@ -7,13 +7,13 @@ const ASSETS = [
   './pong.js',
   './manifest.webmanifest',
   './icons/icon.svg',
-  './icons/icon-maskable.svg'
+  './icons/icon-maskable.svg',
+  './assets/sfx-sprite.mp3',
+  './assets/sfx-sprite.wav'
 ];
 
-// Optionally precache if present (won't fail install if missing)
-const OPTIONAL_ASSETS = [
-  './assets/sfx-sprite.mp3'
-];
+// No optional assets currently
+const OPTIONAL_ASSETS = [];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
